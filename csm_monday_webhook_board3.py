@@ -264,6 +264,8 @@ def search_csm(lastname: str, dateofbirth_ddmmyyyy: str) -> list[dict]:
             "card_html": str(card),
         })
 
+        log.info(f"  [DEBUG] {cert_type} extracted fields: {fields}")
+
     return diplomas
 
 
