@@ -264,8 +264,6 @@ def search_csm(lastname: str, dateofbirth_ddmmyyyy: str) -> list[dict]:
             "card_html": str(card),
         })
 
-        log.info(f"  [DEBUG] {cert_type} extracted fields: {fields}")
-
     return diplomas
 
 
@@ -455,10 +453,17 @@ async def monday_webhook(request: Request):
             # Expiry date
             expiry_raw = find_field(fields, "geldig tot", "vervalt", "expir", "einddatum", "until", "tot")
             if expiry_raw:
-                expiry_iso = parse_date(expiry_raw)
+                # csm-examen.be sometimes appends extra text directly after the
+                # date with no separator (e.g. "27-06-2026Dit diploma is niet
+                # meer geldig!" for expired diplomas) — extract just the date
+                # pattern before parsing.
+                date_match = re.search(r"\d{1,2}[-/]\d{1,2}[-/]\d{2,4}", expiry_raw)
+                expiry_iso = parse_date(date_match.group(0)) if date_match else None
                 if expiry_iso:
                     col_values[col_date] = {"date": expiry_iso}
                     log.info(f"  {ctype} einddatum: {expiry_iso}")
+                else:
+                    log.warning(f"  {ctype} einddatum kon niet geparsed worden uit: {expiry_raw!r}")
 
         # Write text + date columns in one call
         if col_values:
